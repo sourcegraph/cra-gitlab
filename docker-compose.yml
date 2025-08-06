@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  gitlab-cra:
+    build: .
+    ports:
+      - "5051:5051"
+    environment:
+      - GITLAB_BASE_URL=${GITLAB_BASE_URL:-https://gitlab.com}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - SERVER_PORT=${SERVER_PORT:-5051}
+      - SERVER_DEBUG=${SERVER_DEBUG:-false}
+      - AMP_TIMEOUT=${AMP_TIMEOUT:-300}
+      - AMP_SERVER_URL=${AMP_SERVER_URL:-https://ampcode.com}
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+      - CRA_PUBLIC_URL=${CRA_PUBLIC_URL:-http://localhost:5051}
+    volumes:
+      - ./config.yml:/app/config.yml:ro
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5051/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

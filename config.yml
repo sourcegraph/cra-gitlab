@@ -1,0 +1,134 @@
+gitlab:
+  base_url: "${GITLAB_BASE_URL}"
+  token: "${GITLAB_TOKEN}"
+  build_status_key: "amp-review"
+  build_status_name: "Amp Code Review"
+  development_mode: true
+  bot_username: "amp-bot"
+
+queue:
+  max_workers: 20
+  max_queue_size: 100
+  retry_after_seconds: 60
+
+# Diff splitting configuration  
+diff_splitting:
+  max_chunk_size: 500000      # 500k characters per chunk
+  max_concurrent: 3           # Max parallel Amp threads
+
+server:
+  port: "${SERVER_PORT}"
+  debug: "${SERVER_DEBUG}"
+
+amp:
+  timeout: "${AMP_TIMEOUT}"
+  command: "npx --yes @sourcegraph/amp@latest"
+  server_url: "${AMP_SERVER_URL}"
+  settings:
+    amp.url: "${AMP_SERVER_URL}"
+    amp.mcpServers:
+      gitlab:
+        command: "npx"
+        args:
+        - "-y"
+        - "mcp-remote"
+        - "${CRA_PUBLIC_URL}/mcp"
+        - "--header"
+        - "Authorization: Bearer ${MCP_AUTH_TOKEN}"
+      
+  prompt_template: |
+    Review this code diff as a senior developer. Look for bugs, clear logic errors, and code quality problems.
+    Flag significant security concerns (leaked credentials, SQL injection, etc.), but do not mark minor concerns as issues.
+    Likewise, flag significant performance concerns (memory leaks, deadlocks, long-lived requests), but do not mark minor concerns as issues.
+
+    Focus on:
+    - Logic errors
+    - Bug-prone patterns
+    - Code quality issues
+    - Significant security and performance problems
+    - Obvious typos/misspellings
+
+    Merge request details:
+    __MR_DETAILS_CONTENT__
+
+    Diff to review:
+    __DIFF_CONTENT__
+
+    When reviewing code:
+    1. Look at the merge request details to fetch the context before reviewing.
+    2. Review the diff content to identify issues.
+    3. Leave specific inline comments or code suggestions for each issue found.
+    4. Post commit status when the code review is complete.
+
+    Always leave actionable, specific comments with suggested fixes.
+
+    Suggestions are optional snippets of code that can directly replace the full line the indicated issue is on. If provided, the suggestion should be just code-- no thought process included.
+    If there is no simple code suggestion you can provide to fix the issue succinctly, provide null as the suggestion value instead.
+    Suggestions can only be left on "ADDED" or "CONTEXT" line_type issues, not on "REMOVED" issues. For "REMOVED" issues, the suggestion should be null.
+
+    Tools available to complete the code review process:
+    __TOOL_CONTENT__
+
+    After you have completed the code review process:
+    IMPORTANT: If you find any issues, include all of them in a JSON block at the end with the following format:
+    ```json
+    [
+      {
+        "path": "filename.ext",
+        "line": 42,
+        "line_type": "ADDED"|"REMOVED"|"CONTEXT",
+        "message": "Description of the issue",
+        "suggested_fix": "if (user == \"admin\") {"|null
+      }
+    ]
+    ```
+
+    line_type must be one of "ADDED", "REMOVED", or "CONTEXT". This is because in a diff view, the same line number can exist on both sides:
+      Line 15 in the source (removed/context)
+      Line 15 in the destination (added/context)
+      
+    A suggested_fix is an optional short snippet of code that will directly replace the single full line of code the indicated issue is on in order to fix the issue.
+    Because the suggested_fix will only overwrite the single line of code with the issue (the issue line), the suggested_fix can be either:
+      1. One line of code that will replace the issue line directly to address the issue. Here's an example where we fix a typo in the method invocation:
+        Issue line:
+        System.out.printl(foo);
+        
+        suggested_fix:
+        System.out.println(foo);
+
+      2. Multiple lines of code where the first line is the issue line and all subsequent lines are net new lines to be inserted after the issue line.
+      Because the first line in this multi-line suggested_fix will directly replace the existing issue line, the first line can be unchanged if the suggested_fix is a pure insertion after the issue line,
+      or the first line can differ from the issue line if the goal is to edit the issue line AND insert net new lines directly below it. Here's a pure insertion example where we add an auth check:
+        Issue line:
+        def access_data(user):
+        
+        suggested_fix:
+        def access_user_data(user):\n\n    if not user: return\n
+    
+    Any other cases are too complex to provide a simple suggested_fix for, so provide null as the suggested_fix value.
+
+  tools:
+    - name: leave_comment
+      description: Leave comments or code suggestions on merge requests
+      instructions: 
+        - "Use this tool to leave a comment on the code review with the issues you found"
+        - "This will post your comment or code suggestion to GitLab"
+        - "Set `path` and `line` for inline comments, omit for general comments"
+        - "Example: Comment on line 25 of src/auth.js about missing error handling"
+    - name: post_commit_status
+      description: Update commit status
+      instructions: 
+        - "Use to mark review completion: 'success' when done, 'failed' for critical issues"
+        - "Include review summary in description"
+        - "Extract commit_sha, project_id from the merge request context provided"
+        - "Example: For 'Commit SHA: abc123, Project ID: 42', use commit_sha='abc123', project_id='42'"
+    - name: get_mr_info
+      description: Get merge request details
+      instructions: 
+        - "Use to understand context about the merge request before reviewing the diff"
+        - "Extract project_id and mr_iid from the merge request context provided"
+        - "Example: If MR details show 'Project ID: 42, MR IID: 123', use those values"
+    - name: trigger_review
+      description: Start code review process
+      instructions: 
+        - "Usually called automatically, but available if needed to retrigger another code review"
