@@ -1,9 +1,11 @@
+// Load environment variables first
+import 'dotenv/config';
+
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import { prettyJSON } from 'hono/pretty-json';
-// Import dotenv for environment variable loading
 import { GitLabMergeRequestEvent } from './gitlab/types.js';
 import { Config, getConfig } from './config.js';
 import { GitLabClient } from './gitlab/client.js';
@@ -11,9 +13,8 @@ import { ReviewJobQueue, QueueFullError } from './review/review-queue.js';
 import { WebhookProcessor } from './gitlab/webhook-processor.js';
 import { reviewDiff } from './review/reviewer.js';
 import { MRDetails } from './gitlab/types.js';
-
-// Load environment variables
-import 'dotenv/config';
+import { oauth } from './routes/oauth.js';
+import { InstallationStore } from './services/installation-store.js';
 
 const app = new Hono();
 
@@ -24,6 +25,9 @@ app.use('*', prettyJSON());
 
 // Initialize components
 const config: Config = getConfig();
+const installationStore = new InstallationStore();
+
+// For backward compatibility, keep the default GitLab client
 const gitlabClient = new GitLabClient(config);
 const webhookProcessor = new WebhookProcessor(gitlabClient, config);
 
@@ -34,12 +38,17 @@ const reviewQueue = new ReviewJobQueue(
   queueConfig.max_queue_size
 );
 
+// Mount OAuth routes
+app.route('/oauth', oauth);
+
 // Routes
 app.get('/', (c) => {
   return c.json({
     service: 'GitLab Code Review Agent',
-    version: '1.0.0',
+    version: '2.0.0',
+    mode: 'GitLab App',
     endpoints: {
+      install: '/oauth/install',
       webhook: '/gitlab/webhook',
       health: '/health',
       queue_status: '/queue/status'
@@ -82,8 +91,26 @@ app.post('/gitlab/webhook', async (c) => {
 
     console.log(`Processing MR ${payload.object_attributes.iid} action: ${action}`);
 
+    // Look up installation for this project
+    const projectId = payload.project.id;
+    const installation = await installationStore.getInstallationByProjectId(projectId);
+    
+    let clientToUse = gitlabClient;
+    let processorToUse = webhookProcessor;
+    
+    if (installation) {
+      // Use installation-specific client with OAuth token
+      const installationConfig = { ...config };
+      installationConfig.gitlab.token = installation.accessToken;
+      clientToUse = new GitLabClient(installationConfig);
+      processorToUse = new WebhookProcessor(clientToUse, installationConfig);
+      console.log(`Using OAuth token for project ${projectId}, installation ${installation.id}`);
+    } else {
+      console.log(`No installation found for project ${projectId}, using default configuration`);
+    }
+
     // Enqueue review job
-    const jobId = reviewQueue.enqueueReview(webhookProcessor, payload);
+    const jobId = reviewQueue.enqueueReview(processorToUse, payload);
     console.log(`Enqueued review job ${jobId}`);
 
     // Return immediate response

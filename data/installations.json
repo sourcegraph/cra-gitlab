@@ -1,0 +1,15 @@
+{
+  "2c78182f-993d-4715-9c2c-a7901af694a3": {
+    "id": "2c78182f-993d-4715-9c2c-a7901af694a3",
+    "gitlabUserId": 29516700,
+    "gitlabUsername": "karl.clement",
+    "accessToken": "66d41d0a2b9ca1aa3aff44dfe26e37635090b3ccd94a2fe1454d622d5cdfea08",
+    "refreshToken": "39fad52066ccf567dcc8acf732943dda8a81a2be873af3bdbc03d5615c127d4f",
+    "scopes": [
+      "api"
+    ],
+    "installedAt": "2025-08-06T21:05:19.581Z",
+    "projectId": 72479161,
+    "webhookId": 59866146
+  }
+}

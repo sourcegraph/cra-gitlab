@@ -1,7 +1,7 @@
 {
   "name": "gitlab-code-review-agent",
-  "version": "1.0.0",
-  "description": "GitLab webhook service for code review automation using Hono.js",
+  "version": "2.0.0",
+  "description": "GitLab app for automated code reviews with OAuth integration using Hono.js",
   "type": "module",
   "main": "dist/app.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "lint": "eslint src/**/*.ts",
     "type-check": "tsc --noEmit"
   },
-  "keywords": ["gitlab", "hono", "code-review", "webhook", "typescript"],
+  "keywords": ["gitlab", "hono", "code-review", "webhook", "oauth", "app", "typescript"],
   "dependencies": {
     "hono": "^4.6.10",
     "@hono/node-server": "^1.13.7",
