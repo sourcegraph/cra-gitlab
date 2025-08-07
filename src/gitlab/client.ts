@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import { Config } from '../config.js';
-import { GitLabOAuthService } from '../services/oauth.js';
-import { InstallationStore } from '../services/installation-store.js';
+import { GitLabOAuthService } from './oauth.js';
+import { InstallationStore } from './installation-store.js';
 import { GitLabInstallation } from '../types/installation.js';
 
 export class GitLabClient {

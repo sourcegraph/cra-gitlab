@@ -1,13 +1,14 @@
 import { Hono } from 'hono';
 import { v4 as uuidv4 } from 'uuid';
-import { GitLabOAuthService } from '../services/oauth.js';
-import { InstallationStore } from '../services/installation-store.js';
-import { WebhookManager } from '../services/webhook-manager.js';
+import { GitLabOAuthService } from '../gitlab/oauth.js';
+import { InstallationStore } from '../gitlab/installation-store.js';
+import { WebhookManager } from '../gitlab/webhook-manager.js';
 import { GitLabInstallation } from '../types/installation.js';
 import { GitLabMergeRequestEvent } from '../gitlab/types.js';
 import { GitLabClient } from '../gitlab/client.js';
 import { QueueFullError } from '../review/review-queue.js';
 import { Config, getConfig } from '../config.js';
+import { processReview } from '../gitlab/process-review.js';
 
 const gitlab = new Hono();
 const oauthService = new GitLabOAuthService();
@@ -54,13 +55,13 @@ gitlab.post('/webhook', async (c) => {
     const projectId = payload.project.id;
     const installation = await installationStore.getInstallationByProjectId(projectId);
     
-    let clientToUse = gitlabClient;
+    let client = gitlabClient;
     
     if (installation) {
       // Use installation-specific client with OAuth token
       const installationConfig = { ...config };
       installationConfig.gitlab.token = installation.accessToken;
-      clientToUse = new GitLabClient(installationConfig, installation, oauthService, installationStore);
+      client = new GitLabClient(installationConfig, installation, oauthService, installationStore);
     }
 
     if (!reviewQueue) {
@@ -68,7 +69,11 @@ gitlab.post('/webhook', async (c) => {
     }
 
     // Enqueue review job
-    const jobId = reviewQueue.enqueueReview(clientToUse, payload);
+    const processReviewCallback = async (jobId: string) => {
+      await processReview(jobId, client, payload);
+    };
+    
+    const jobId = reviewQueue.enqueueReview(payload.object_attributes.iid, processReviewCallback);
 
     // Return immediate response
     return c.json({

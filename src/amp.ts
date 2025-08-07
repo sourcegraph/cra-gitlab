@@ -43,16 +43,6 @@ export async function newThread(folderPath: string = tmpdir()): Promise<string> 
     }
 }
 
-function debugOutput(context: string, tag?: string): void {
-    console.log(`
----------
-<${tag || "result"}>
-${context}
-</${tag || "result"}>
----------
-    `);
-}
-
 export async function execute(options: ExecuteCommandOptions = {}): Promise<string> {
     const { 
         prompt,
@@ -82,17 +72,12 @@ export async function execute(options: ExecuteCommandOptions = {}): Promise<stri
             
         // Build the command string
         const command = `${prompt ? includePrompt : includePromptFile}${config.amp.command}${includeThread}${includeDebug}${includeSettings}${includeResult}`;
-
-        if (debug) debugOutput(`Executing: ${command}`, `${commandNameLabel}_command`);
         
         // Execute command
         const { stdout, stderr } = await execAsync(command, { cwd: folderPath });
-        
-        if (debug) debugOutput(stdout, `${commandNameLabel}_result`);
-        
+                
         return stdout;
     } catch (error) {
-        if (debug) debugOutput(`Error executing command: ${error}`, `${commandNameLabel}_error`);
         throw new Error(`Failed to execute command: ${error instanceof Error ? error.message : String(error)}`);
     }
 }

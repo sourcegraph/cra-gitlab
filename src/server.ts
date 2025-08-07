@@ -10,7 +10,6 @@ import { Config, getConfig } from './config.js';
 import { GitLabClient } from './gitlab/client.js';
 import { ReviewJobQueue } from './review/review-queue.js';
 import { reviewDiff } from './review/reviewer.js';
-import { MRDetails } from './gitlab/types.js';
 import { gitlab, setReviewQueue } from './routes/gitlab.js';
 import { InstallationStore } from './services/installation-store.js';
 import { GitLabOAuthService } from './services/oauth.js';
@@ -25,18 +24,8 @@ app.use('*', prettyJSON());
 
 // Initialize components
 const config: Config = getConfig();
-const installationStore = new InstallationStore();
-const oauthService = new GitLabOAuthService();
-
-// For backward compatibility, keep the default GitLab client
-const gitlabClient = new GitLabClient(config);
-
 const queueConfig = config.queue;
-const reviewQueue = new ReviewJobQueue(
-  gitlabClient,
-  config,
-  queueConfig.max_queue_size
-);
+const reviewQueue = new ReviewJobQueue(queueConfig.max_queue_size);
 
 // Set the review queue for the gitlab routes
 setReviewQueue(reviewQueue);
@@ -100,8 +89,10 @@ app.post('/test/review', async (c) => {
     if (!diffContent || !mrDetails) {
       return c.json({ error: 'Missing diffContent or mrDetails' }, 400);
     }
+
+    const mrDetailsContent = `Project ID: ${mrDetails.project_id}, MR IID: ${mrDetails.mr_iid}, Commit SHA: ${mrDetails.commit_sha}, MR URL: ${mrDetails.mr_url}`;
     
-    const result = await reviewDiff(diffContent, mrDetails as MRDetails);
+    const result = await reviewDiff(diffContent, mrDetailsContent);
     
     return c.json({
       success: true,

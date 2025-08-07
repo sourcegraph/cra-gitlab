@@ -48,7 +48,7 @@ export interface JobInfo {
   created: number;
   started?: number;
   completed?: number;
-  mr_iid?: number;
+  id?: number;
   result?: ReviewResult;
   error?: string;
 }
