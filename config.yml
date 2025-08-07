@@ -39,7 +39,7 @@ amp:
   prompt_template: |
     Review this code diff as a senior developer. Look for bugs, clear logic errors, and code quality problems.
     Flag significant security concerns (leaked credentials, SQL injection, etc.), but do not mark minor concerns as issues.
-    Likewise, flag significant performance concerns (memory leaks, deadlocks, long-lived requests), but do not mark minor concerns as issues.
+    Likewise, flag significant performance concerns (memory leaks, deadlocks, long-lived requests), but do not mark minor concerns as issues. Do not use the oracle to review code.
 
     Focus on:
     - Logic errors
@@ -64,7 +64,7 @@ amp:
 
     Suggestions are optional snippets of code that can directly replace the full line the indicated issue is on. If provided, the suggestion should be just code-- no thought process included.
     If there is no simple code suggestion you can provide to fix the issue succinctly, provide null as the suggestion value instead.
-    Suggestions can only be left on "ADDED" or "CONTEXT" line_type issues, not on "REMOVED" issues. For "REMOVED" issues, the suggestion should be null.
+    Suggestions can only be left on "new" line_type issues, not on "old" issues. For "old" issues, the suggestion should be null.
 
     Tools available to complete the code review process:
     __TOOL_CONTENT__
@@ -76,16 +76,16 @@ amp:
       {
         "path": "filename.ext",
         "line": 42,
-        "line_type": "ADDED"|"REMOVED"|"CONTEXT",
+        "line_type": "new"|"old",
         "message": "Description of the issue",
         "suggested_fix": "if (user == \"admin\") {"|null
       }
     ]
     ```
 
-    line_type must be one of "ADDED", "REMOVED", or "CONTEXT". This is because in a diff view, the same line number can exist on both sides:
-      Line 15 in the source (removed/context)
-      Line 15 in the destination (added/context)
+    line_type must be one of "new" or "old". This is because in a diff view, the same line number can exist on both sides:
+      Line 15 in the source (old)
+      Line 15 in the destination (new)
       
     A suggested_fix is an optional short snippet of code that will directly replace the single full line of code the indicated issue is on in order to fix the issue.
     Because the suggested_fix will only overwrite the single line of code with the issue (the issue line), the suggested_fix can be either:
@@ -108,12 +108,19 @@ amp:
     Any other cases are too complex to provide a simple suggested_fix for, so provide null as the suggested_fix value.
 
   tools:
-    - name: leave_comment
-      description: Leave comments or code suggestions on merge requests
+    - name: leave_general_comment
+      description: Leave general comments on merge requests
       instructions: 
-        - "Use this tool to leave a comment on the code review with the issues you found"
-        - "This will post your comment or code suggestion to GitLab"
-        - "Set `path` and `line` for inline comments, omit for general comments"
+        - "Use this tool to leave general comments on the merge request"
+        - "This will post your comment to the overall merge request discussion"
+        - "Use for summary comments, overall feedback, or general observations"
+        - "Example: 'Overall the code looks good, just a few minor suggestions'"
+    - name: leave_inline_comment
+      description: Leave inline comments on specific lines in merge requests
+      instructions: 
+        - "Use this tool to leave comments on specific lines of code"
+        - "This will post your comment directly on the line in the diff view"
+        - "Required: path, line, and line_type ('new' for added lines, 'old' for removed lines)"
         - "Example: Comment on line 25 of src/auth.js about missing error handling"
     - name: post_commit_status
       description: Update commit status
@@ -132,3 +139,9 @@ amp:
       description: Start code review process
       instructions: 
         - "Usually called automatically, but available if needed to retrigger another code review"
+    - name: get_mr_comments
+      description: Get all comments on a merge request
+      instructions: 
+        - "Use to retrieve existing comments on the merge request"
+        - "Extract project_id and mr_iid from the merge request context provided"
+        - "Helpful to see what feedback has already been given before adding new comments"

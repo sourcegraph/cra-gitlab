@@ -103,8 +103,6 @@ export const reviewDiff = async (diffContent: string, mrDetails: MRDetails) => {
         console.log(`Amp CLI completed successfully, result length: ${finalReviewText.length}`);
       }
 
-      console.log("!@!@!@!@!@", finalReviewText, "!@!@!@!@!@!");
-
       // Structure final response
       const structuredIssues: ReviewIssue[] = [];
       if (finalReviewText.trim()) {

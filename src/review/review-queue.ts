@@ -71,8 +71,6 @@ export class ReviewJobQueue {
       const projectId = payload.project.id;
       const commitSha = payload.object_attributes.last_commit.id;
 
-      console.log(`Extracted MR info: iid=${mrIid}, project=${projectId}, commit=${commitSha}`);
-
       if (!mrIid || !projectId || !commitSha) {
         const error = 'Missing required MR information';
         console.error(error);

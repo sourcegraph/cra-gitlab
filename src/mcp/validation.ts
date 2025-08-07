@@ -1,9 +1,11 @@
-import { LeaveCommentArgs } from './tools/leave_comment.js';
+import { LeaveGeneralCommentArgs } from './tools/leave_comment.js';
+import { LeaveInlineCommentArgs } from './tools/leave_inline_comment.js';
 import { PostCommitStatusArgs } from './tools/post_commit_status.js';
 import { GetMRInfoArgs } from './tools/get_mr_info.js';
 import { TriggerReviewArgs } from './tools/trigger_review.js';
+import { GetMRCommentsArgs } from './tools/get_mr_comments.js';
 
-export function validateLeaveCommentArgs(args: any): LeaveCommentArgs {
+export function validateLeaveGeneralCommentArgs(args: any): LeaveGeneralCommentArgs {
   if (!args || typeof args !== 'object') {
     throw new Error('Invalid arguments: expected object');
   }
@@ -20,20 +22,52 @@ export function validateLeaveCommentArgs(args: any): LeaveCommentArgs {
     throw new Error('Invalid mr_iid: expected number');
   }
   
-  // Optional fields validation
-  if (args.path !== undefined && typeof args.path !== 'string') {
-    throw new Error('Invalid path: expected string or undefined');
+  return args as LeaveGeneralCommentArgs;
+}
+
+export function validateLeaveInlineCommentArgs(args: any): LeaveInlineCommentArgs {
+  if (!args || typeof args !== 'object') {
+    throw new Error('Invalid arguments: expected object');
   }
   
-  if (args.line !== undefined && typeof args.line !== 'number') {
-    throw new Error('Invalid line: expected number or undefined');
+  if (typeof args.message !== 'string') {
+    throw new Error('Invalid message: expected string');
   }
   
-  if (args.line_type !== undefined && !['ADDED', 'REMOVED', 'CONTEXT'].includes(args.line_type)) {
-    throw new Error('Invalid line_type: expected ADDED, REMOVED, or CONTEXT');
+  if (typeof args.project_id !== 'number') {
+    throw new Error('Invalid project_id: expected number');
   }
   
-  return args as LeaveCommentArgs;
+  if (typeof args.mr_iid !== 'number') {
+    throw new Error('Invalid mr_iid: expected number');
+  }
+  
+  if (typeof args.path !== 'string') {
+    throw new Error('Invalid path: expected string');
+  }
+  
+  if (typeof args.line !== 'number') {
+    throw new Error('Invalid line: expected number');
+  }
+  
+  if (!['new', 'old'].includes(args.line_type)) {
+    throw new Error('Invalid line_type: expected new or old');
+  }
+  
+  // Optional SHA fields validation
+  if (args.base_sha !== undefined && typeof args.base_sha !== 'string') {
+    throw new Error('Invalid base_sha: expected string or undefined');
+  }
+  
+  if (args.start_sha !== undefined && typeof args.start_sha !== 'string') {
+    throw new Error('Invalid start_sha: expected string or undefined');
+  }
+  
+  if (args.head_sha !== undefined && typeof args.head_sha !== 'string') {
+    throw new Error('Invalid head_sha: expected string or undefined');
+  }
+  
+  return args as LeaveInlineCommentArgs;
 }
 
 export function validatePostCommitStatusArgs(args: any): PostCommitStatusArgs {
@@ -98,4 +132,20 @@ export function validateTriggerReviewArgs(args: any): TriggerReviewArgs {
   }
   
   return args as TriggerReviewArgs;
+}
+
+export function validateGetMRCommentsArgs(args: any): GetMRCommentsArgs {
+  if (!args || typeof args !== 'object') {
+    throw new Error('Invalid arguments: expected object');
+  }
+  
+  if (typeof args.project_id !== 'number') {
+    throw new Error('Invalid project_id: expected number');
+  }
+  
+  if (typeof args.mr_iid !== 'number') {
+    throw new Error('Invalid mr_iid: expected number');
+  }
+  
+  return args as GetMRCommentsArgs;
 }

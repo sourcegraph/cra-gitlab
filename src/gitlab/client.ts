@@ -188,6 +188,48 @@ export class GitLabClient {
     }
   }
 
+  async createMRDiscussion(
+    projectId: number,
+    mrIid: number,
+    body: string,
+    position?: {
+      base_sha: string;
+      start_sha: string;
+      head_sha: string;
+      position_type: string;
+      new_path: string;
+      old_path: string;
+      new_line?: number;
+      old_line?: number;
+    }
+  ): Promise<any> {
+    const url = `${this.baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
+    
+    const payload: any = { body };
+    if (position) {
+      payload.position = position;
+    }
+
+    try {
+      const response = await this.makeRequest(url, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`GitLab API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      const responseText = await response.text();
+      return responseText ? JSON.parse(responseText) : { success: true };
+    } catch (error) {
+      console.error(`Failed to create MR discussion: ${error}`);
+      throw error;
+    }
+  }
+
   async getMRDiff(projectId: number, mrIid: number): Promise<string> {
     const url = `${this.baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/diffs`;
     
@@ -258,6 +300,27 @@ export class GitLabClient {
       return await response.json();
     } catch (error) {
       console.error(`Failed to get project info: ${error}`);
+      throw error;
+    }
+  }
+
+  async getMRComments(projectId: number, mrIid: number): Promise<any[]> {
+    const url = `${this.baseUrl}/api/v4/projects/${projectId}/merge_requests/${mrIid}/notes`;
+    
+    try {
+      const response = await this.makeRequest(url, {
+        method: 'GET',
+        headers: this.headers,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`GitLab API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error(`Failed to get MR comments: ${error}`);
       throw error;
     }
   }
