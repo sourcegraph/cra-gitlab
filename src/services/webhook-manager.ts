@@ -1,4 +1,4 @@
-import { GitLabInstallation } from '../types/installation.js';
+
 
 export interface WebhookConfig {
   url: string;

@@ -4,16 +4,109 @@ import { GitLabOAuthService } from '../services/oauth.js';
 import { InstallationStore } from '../services/installation-store.js';
 import { WebhookManager } from '../services/webhook-manager.js';
 import { GitLabInstallation } from '../types/installation.js';
+import { GitLabMergeRequestEvent } from '../gitlab/types.js';
+import { GitLabClient } from '../gitlab/client.js';
+import { QueueFullError } from '../review/review-queue.js';
+import { Config, getConfig } from '../config.js';
 
-const oauth = new Hono();
+const gitlab = new Hono();
 const oauthService = new GitLabOAuthService();
 const installationStore = new InstallationStore();
 const webhookManager = new WebhookManager();
 
+// Initialize config and client for webhook route
+const config: Config = getConfig();
+const gitlabClient = new GitLabClient(config);
+
+// We'll need to receive the reviewQueue from the main server
+let reviewQueue: any = null;
+
+// Function to set the review queue from the main server
+export function setReviewQueue(queue: any) {
+  reviewQueue = queue;
+}
+
+/**
+ * GitLab webhook endpoint
+ */
+gitlab.post('/webhook', async (c) => {
+  try {
+    console.log('Received GitLab webhook request');
+    
+    const payload = await c.req.json() as GitLabMergeRequestEvent;
+    
+    if (!payload) {
+      return c.json({ error: 'No JSON payload' }, 400);
+    }
+
+    // Check if this is a merge request event we care about
+    if (payload.object_kind !== 'merge_request') {
+      console.log(`Ignoring non-merge_request event: ${payload.object_kind}`);
+      return c.json({ message: 'Event ignored' }, 200);
+    }
+
+    // Check if this is an action we care about (opened, updated)
+    const action = payload.object_attributes.action;
+    if (!['open', 'reopen', 'update'].includes(action)) {
+      console.log(`Ignoring MR action: ${action}`);
+      return c.json({ message: 'Action ignored' }, 200);
+    }
+
+    console.log(`Processing MR ${payload.object_attributes.iid} action: ${action}`);
+
+    // Look up installation for this project
+    const projectId = payload.project.id;
+    const installation = await installationStore.getInstallationByProjectId(projectId);
+    
+    let clientToUse = gitlabClient;
+    
+    if (installation) {
+      // Use installation-specific client with OAuth token
+      const installationConfig = { ...config };
+      installationConfig.gitlab.token = installation.accessToken;
+      clientToUse = new GitLabClient(installationConfig, installation, oauthService, installationStore);
+      console.log(`Using OAuth token for project ${projectId}, installation ${installation.id}`);
+    } else {
+      console.log(`No installation found for project ${projectId}, using default configuration`);
+    }
+
+    if (!reviewQueue) {
+      throw new Error('Review queue not initialized');
+    }
+
+    // Enqueue review job
+    const jobId = reviewQueue.enqueueReview(clientToUse, payload);
+    console.log(`Enqueued review job ${jobId}`);
+
+    // Return immediate response
+    return c.json({
+      jobId,
+      status: 'queued',
+      message: 'Review job enqueued successfully'
+    }, 202); // 202 Accepted
+
+  } catch (error) {
+    if (error instanceof QueueFullError) {
+      const queueConfig = config.queue;
+      console.warn(`Queue full: ${error.message}`);
+      return c.json({
+        error: 'Review queue is full',
+        message: 'The system is currently overloaded. Please try again later.',
+        retry_after: queueConfig.retry_after_seconds
+      }, 503); // 503 Service Unavailable
+    }
+
+    console.error('Webhook error:', error);
+    return c.json({ 
+      error: error instanceof Error ? error.message : String(error) 
+    }, 500);
+  }
+});
+
 /**
  * Start OAuth flow - redirect to GitLab authorization
  */
-oauth.get('/install', async (c) => {
+gitlab.get('/install', async (c) => {
   const state = uuidv4();
   const authUrl = oauthService.getAuthorizationUrl(state);
   
@@ -27,7 +120,7 @@ oauth.get('/install', async (c) => {
 /**
  * Handle OAuth callback from GitLab
  */
-oauth.get('/callback', async (c) => {
+gitlab.get('/callback', async (c) => {
   try {
     const code = c.req.query('code');
     const state = c.req.query('state');
@@ -118,7 +211,7 @@ oauth.get('/callback', async (c) => {
 /**
  * Project setup page - automatically configure webhooks
  */
-oauth.get('/setup/:installationId', async (c) => {
+gitlab.get('/setup/:installationId', async (c) => {
   const installationId = c.req.param('installationId');
   const installation = await installationStore.getInstallation(installationId);
   
@@ -145,7 +238,7 @@ oauth.get('/setup/:installationId', async (c) => {
         <h1>🔧 Project Setup</h1>
         <p>Automatically configure code reviews for your GitLab project.</p>
         
-        <form action="/oauth/setup" method="post">
+        <form action="/gitlab/setup" method="post">
           <input type="hidden" name="installationId" value="${installationId}">
           
           <div class="form-group">
@@ -179,7 +272,7 @@ oauth.get('/setup/:installationId', async (c) => {
 /**
  * Handle project setup form submission
  */
-oauth.post('/setup', async (c) => {
+gitlab.post('/setup', async (c) => {
   try {
     const formData = await c.req.formData();
     const installationId = formData.get('installationId') as string;
@@ -261,4 +354,4 @@ oauth.post('/setup', async (c) => {
   }
 });
 
-export { oauth };
+export { gitlab };

@@ -7,7 +7,7 @@ This guide shows how to set up the GitLab Code Review Agent as a proper GitLab a
 1. Go to GitLab.com → User Settings → Applications
 2. Create a new application with:
    - **Name**: `Code Review Agent`
-   - **Redirect URI**: `http://your-domain.com/oauth/callback`
+   - **Redirect URI**: `http://your-domain.com/gitlab/callback`
    - **Scopes**: `api` (full API access)
 3. Save the Client ID and Client Secret
 
@@ -19,7 +19,7 @@ This guide shows how to set up the GitLab Code Review Agent as a proper GitLab a
 # GitLab OAuth Configuration
 GITLAB_CLIENT_ID=your_gitlab_app_client_id
 GITLAB_CLIENT_SECRET=your_gitlab_app_client_secret
-GITLAB_REDIRECT_URI=https://your-domain.com/oauth/callback
+GITLAB_REDIRECT_URI=https://your-domain.com/gitlab/callback
 
 # Server Configuration
 APP_BASE_URL=https://your-domain.com
@@ -54,7 +54,7 @@ npm start
 
 Users can now install your app by visiting:
 ```
-https://your-domain.com/oauth/install
+https://your-domain.com/gitlab/install
 ```
 
 ### Installation Process:
@@ -87,10 +87,10 @@ https://your-domain.com/oauth/install
 
 ## 6. API Endpoints
 
-- `GET /oauth/install` - Start installation flow
-- `GET /oauth/callback` - OAuth callback handler
-- `GET /oauth/setup/:id` - Project setup page
-- `POST /oauth/setup` - Configure webhooks
+- `GET /gitlab/install` - Start installation flow
+- `GET /gitlab/callback` - OAuth callback handler
+- `GET /gitlab/setup/:id` - Project setup page
+- `POST /gitlab/setup` - Configure webhooks
 - `POST /gitlab/webhook` - Webhook receiver (multi-tenant)
 
 ## 7. Database Schema
