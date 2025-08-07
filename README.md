@@ -106,18 +106,18 @@ The `config.yml` file controls:
 - **Amp configuration**: Command, timeout, prompt template, MCP server integration
 - **Queue settings**: Max workers, queue size, retry behavior
 - **Server settings**: Port, debug mode, and environment-based configuration
-- **Tool definitions**: Available MCP tools for code review (leave_comment, post_commit_status, get_mr_info, trigger_review)
+- **Tool definitions**: Available MCP tools for code review (leave_general_comment, leave_inline_comment, post_commit_status, get_mr_info, trigger_review, get_mr_comments)
 
 ## Development
 
 - `npm run dev` - Start development server with hot reload
-- `npm run build` - Build TypeScript to JavaScript
+- `npm run build` - Build TypeScript to JavaScript  
 - `npm start` - Start production server
-- `npm run mcp` - Start standalone MCP server
+- `npm run mcp` - Start standalone MCP server for testing
 - `npm run mcp:build` - Build and start MCP server
 - `npm run type-check` - Run TypeScript type checking
 - `npm run lint` - Run ESLint
-- `npm test` - Run tests
+- `npm test` - Run tests with Vitest
 
 ## Architecture
 
@@ -135,7 +135,7 @@ The service provides both OAuth App and traditional webhook modes:
 4. **GitLab Updates**: Comments and commit statuses posted via MCP tools
 
 ### MCP Integration
-1. **Tool Registry**: Provides get_mr_info, leave_comment, post_commit_status, trigger_review
+1. **Tool Registry**: Provides get_mr_info, leave_general_comment, leave_inline_comment, post_commit_status, trigger_review, get_mr_comments
 2. **Authentication**: Bearer token authentication for external access
 3. **Protocol Support**: Both REST API and JSON-RPC protocols
 

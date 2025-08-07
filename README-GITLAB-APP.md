@@ -116,7 +116,7 @@ https://your-domain.com/gitlab/install
 
 ### MCP Integration
 - `GET /mcp/health` - MCP service health check
-- `GET /mcp/tools/list` - List available review tools
+- `GET /mcp/tools/list` - List available review tools (get_mr_info, leave_general_comment, leave_inline_comment, post_commit_status, trigger_review, get_mr_comments)
 - `POST /mcp/tools/call` - Execute review tools
 - `POST /mcp/` - JSON-RPC protocol endpoint
 
@@ -142,18 +142,18 @@ Installations are stored in JSON format:
 
 ### Infrastructure
 1. **Database**: Replace file-based storage with PostgreSQL/MySQL for installations
-2. **Redis**: Use Redis for job queue and session management
+2. **Redis**: Use Redis for job queue and session management  
 3. **HTTPS**: Always use HTTPS in production (required for OAuth)
 4. **Load Balancing**: Use reverse proxy (nginx/cloudflare) for high availability
 
 ### Security & Monitoring  
 5. **Rate Limiting**: Implement rate limiting for webhook and OAuth endpoints
-6. **Monitoring**: Add health checks, metrics, and alerting
+6. **Monitoring**: Add health checks, metrics, and alerting (`/health`, `/queue/status`, `/mcp/health`)
 7. **Logging**: Structured logging with log aggregation
-8. **Secrets Management**: Use environment-specific secret management
+8. **Secrets Management**: Use environment-specific secret management (MCP_AUTH_TOKEN, OAuth secrets)
 
 ### Performance
-9. **Queue Scaling**: Scale review workers based on queue depth
+9. **Queue Scaling**: Scale review workers based on queue depth (max 20 workers, 100 queue size)
 10. **Token Refresh**: Implement robust token refresh and retry logic
 
 ## 9. Marketplace Submission
