@@ -7,6 +7,39 @@ import { v4 as uuidv4 } from 'uuid';
 import { Config, getConfig } from "../config.js";
 import { newThread, execute } from "../amp.js";
 
+const extractIssues = (reviewText: string): ReviewIssue[] => {
+  const issues: ReviewIssue[] = [];
+  
+  // Look for JSON blocks in the review text
+  const jsonBlockRegex = /```json\s*([\s\S]*?)```/g;
+  let match;
+  
+  while ((match = jsonBlockRegex.exec(reviewText)) !== null) {
+    try {
+      const jsonContent = match[1].trim();
+      const parsedIssues = JSON.parse(jsonContent);
+      
+      if (Array.isArray(parsedIssues)) {
+        for (const issue of parsedIssues) {
+          if (issue?.path && issue?.line && issue?.line_type && issue?.message) {
+            issues.push({
+              path: issue.path,
+              line: parseInt(issue.line),
+              line_type: issue.line_type,
+              message: issue.message,
+              suggested_fix: issue.suggested_fix || null
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to parse JSON block in review text:', error);
+    }
+  }
+  
+  return issues;
+};
+
 export const reviewDiff = async (diffContent: string, mrDetails: MRDetails) => {
 
     // Get config
@@ -33,7 +66,7 @@ export const reviewDiff = async (diffContent: string, mrDetails: MRDetails) => {
         `${tool.name}: ${tool.description}\n${tool.instructions.join('\n')}`
       ).join('\n\n');
       
-    //   promptContent = promptContent.replace('__TOOL_CONTENT__', toolsContent);
+      promptContent = promptContent.replace('__TOOL_CONTENT__', toolsContent);
 
       // Write prompt to file
       writeFileSync(promptFilePath, promptContent, 'utf8');
@@ -71,19 +104,19 @@ export const reviewDiff = async (diffContent: string, mrDetails: MRDetails) => {
         structuredIssues.push(...extractedIssues);
       }
 
-    //   return {
-    //     success: true,
-    //     issues: structuredIssues.length > 0 ? [{
-    //       path: '',
-    //       line: 0,
-    //       line_type: 'ADDED' as const,
-    //       message: finalReviewText,
-    //       suggested_fix: null
-    //     }] : undefined,
-    //     structured_issues: structuredIssues,
-    //     final_review: finalReviewText,
-    //     thread_ids: threadId ? [threadId] : undefined
-    //   };
+      return {
+        success: true,
+        issues: structuredIssues.length > 0 ? [{
+          path: '',
+          line: 0,
+          line_type: 'ADDED' as const,
+          message: finalReviewText,
+          suggested_fix: null
+        }] : undefined,
+        structured_issues: structuredIssues,
+        final_review: finalReviewText,
+        thread_ids: threadId ? [threadId] : undefined
+      };
   } catch (error) {
     console.error(`Error starting thread: ${error}`);
     throw new Error(`Failed to start thread: ${error}`);

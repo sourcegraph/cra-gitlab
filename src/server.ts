@@ -10,11 +10,11 @@ import { GitLabMergeRequestEvent } from './gitlab/types.js';
 import { Config, getConfig } from './config.js';
 import { GitLabClient } from './gitlab/client.js';
 import { ReviewJobQueue, QueueFullError } from './review/review-queue.js';
-import { WebhookProcessor } from './gitlab/webhook-processor.js';
 import { reviewDiff } from './review/reviewer.js';
 import { MRDetails } from './gitlab/types.js';
 import { oauth } from './routes/oauth.js';
 import { InstallationStore } from './services/installation-store.js';
+import { GitLabOAuthService } from './services/oauth.js';
 
 const app = new Hono();
 
@@ -26,10 +26,10 @@ app.use('*', prettyJSON());
 // Initialize components
 const config: Config = getConfig();
 const installationStore = new InstallationStore();
+const oauthService = new GitLabOAuthService();
 
 // For backward compatibility, keep the default GitLab client
 const gitlabClient = new GitLabClient(config);
-const webhookProcessor = new WebhookProcessor(gitlabClient, config);
 
 const queueConfig = config.queue;
 const reviewQueue = new ReviewJobQueue(
@@ -96,21 +96,19 @@ app.post('/gitlab/webhook', async (c) => {
     const installation = await installationStore.getInstallationByProjectId(projectId);
     
     let clientToUse = gitlabClient;
-    let processorToUse = webhookProcessor;
     
     if (installation) {
       // Use installation-specific client with OAuth token
       const installationConfig = { ...config };
       installationConfig.gitlab.token = installation.accessToken;
-      clientToUse = new GitLabClient(installationConfig);
-      processorToUse = new WebhookProcessor(clientToUse, installationConfig);
+      clientToUse = new GitLabClient(installationConfig, installation, oauthService, installationStore);
       console.log(`Using OAuth token for project ${projectId}, installation ${installation.id}`);
     } else {
       console.log(`No installation found for project ${projectId}, using default configuration`);
     }
 
     // Enqueue review job
-    const jobId = reviewQueue.enqueueReview(processorToUse, payload);
+    const jobId = reviewQueue.enqueueReview(clientToUse, payload);
     console.log(`Enqueued review job ${jobId}`);
 
     // Return immediate response
