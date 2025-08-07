@@ -55,7 +55,7 @@ class ConfigLoader {
   private static instance: ConfigLoader;
   private config: Config;
 
-  private constructor() {
+  private constructor() {    
     const configFile = readFileSync('config.yml', 'utf8');
     const rawConfig = yaml.load(configFile) as any;
     this.config = this.processEnvVars(rawConfig);
@@ -74,9 +74,15 @@ class ConfigLoader {
 
   private processEnvVars(obj: any): any {
     if (typeof obj === 'string') {
-      return obj.replace(/\$\{([^}]+)\}/g, (_, envVar) => 
-        process.env[envVar] || `\${${envVar}}`
-      );
+      return obj.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
+        const value = process.env[envVar];
+        if (value) {
+          return value;
+        } else {
+          console.warn(`Environment variable ${envVar} not found, keeping placeholder`);
+          return `\${${envVar}}`;
+        }
+      });
     }
     if (Array.isArray(obj)) {
       return obj.map(item => this.processEnvVars(item));

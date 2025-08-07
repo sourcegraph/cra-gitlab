@@ -31,8 +31,6 @@ export function setReviewQueue(queue: any) {
  */
 gitlab.post('/webhook', async (c) => {
   try {
-    console.log('Received GitLab webhook request');
-    
     const payload = await c.req.json() as GitLabMergeRequestEvent;
     
     if (!payload) {
@@ -41,14 +39,12 @@ gitlab.post('/webhook', async (c) => {
 
     // Check if this is a merge request event we care about
     if (payload.object_kind !== 'merge_request') {
-      console.log(`Ignoring non-merge_request event: ${payload.object_kind}`);
       return c.json({ message: 'Event ignored' }, 200);
     }
 
     // Check if this is an action we care about (opened, updated)
     const action = payload.object_attributes.action;
     if (!['open', 'reopen', 'update'].includes(action)) {
-      console.log(`Ignoring MR action: ${action}`);
       return c.json({ message: 'Action ignored' }, 200);
     }
 
@@ -65,9 +61,6 @@ gitlab.post('/webhook', async (c) => {
       const installationConfig = { ...config };
       installationConfig.gitlab.token = installation.accessToken;
       clientToUse = new GitLabClient(installationConfig, installation, oauthService, installationStore);
-      console.log(`Using OAuth token for project ${projectId}, installation ${installation.id}`);
-    } else {
-      console.log(`No installation found for project ${projectId}, using default configuration`);
     }
 
     if (!reviewQueue) {
@@ -76,7 +69,6 @@ gitlab.post('/webhook', async (c) => {
 
     // Enqueue review job
     const jobId = reviewQueue.enqueueReview(clientToUse, payload);
-    console.log(`Enqueued review job ${jobId}`);
 
     // Return immediate response
     return c.json({
@@ -295,8 +287,6 @@ gitlab.post('/setup', async (c) => {
       push_events: false,
       issues_events: false,
     };
-
-    console.log('Webhook config being passed:', webhookConfig);
 
     let webhookId: number;
     

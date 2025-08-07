@@ -24,11 +24,11 @@ RUN chown -R nodejs:nodejs /app
 USER nodejs
 
 # Expose port
-EXPOSE 5051
+EXPOSE  5052
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://localhost:5051/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
+  CMD node -e "fetch('http://localhost:5052/health').then(r => r.status === 200 ? process.exit(0) : process.exit(1))"
 
 # Start the application
 CMD ["npm", "start"]

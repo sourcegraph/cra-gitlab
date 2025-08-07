@@ -16,7 +16,8 @@ const extractIssues = (reviewText: string): ReviewIssue[] => {
   
   while ((match = jsonBlockRegex.exec(reviewText)) !== null) {
     try {
-      const jsonContent = match[1].trim();
+      const jsonContent = match[1]?.trim();
+      if (!jsonContent) continue;
       const parsedIssues = JSON.parse(jsonContent);
       
       if (Array.isArray(parsedIssues)) {
@@ -57,16 +58,24 @@ export const reviewDiff = async (diffContent: string, mrDetails: MRDetails) => {
       
       // Create prompt content
       const ampConfig = config.amp;
+      
       let promptContent = ampConfig.prompt_template
-        .replace('__MR_DETAILS_CONTENT__', mrDetailsContent)
-        .replace('__DIFF_CONTENT__', diffContent);
+        .replace(/__MR_DETAILS_CONTENT__/g, mrDetailsContent)
+        .replace(/__DIFF_CONTENT__/g, diffContent);
 
       // Add tools content
-      const toolsContent = ampConfig.tools.map(tool => 
-        `${tool.name}: ${tool.description}\n${tool.instructions.join('\n')}`
-      ).join('\n\n');
-      
-      promptContent = promptContent.replace('__TOOL_CONTENT__', toolsContent);
+      let toolsContent = '<tools>';
+      toolsContent += ampConfig.tools.map(tool => {
+        return `
+        <tool>
+            <title>${tool.name}</title>
+            <description>${tool.description}</description>
+            <instructions>${tool.instructions.join('\n')}</instructions>
+        </tool>
+    `;
+      }).join('');
+      toolsContent += '</tools>';
+      promptContent = promptContent.replace(/__TOOL_CONTENT__/g, toolsContent);
 
       // Write prompt to file
       writeFileSync(promptFilePath, promptContent, 'utf8');

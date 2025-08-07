@@ -4,7 +4,6 @@ import { join } from 'path';
 
 /**
  * Simple file-based storage for installations
- * In production, use a proper database like PostgreSQL
  */
 export class InstallationStore {
   private storePath: string;

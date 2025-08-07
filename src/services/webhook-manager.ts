@@ -130,7 +130,7 @@ export class WebhookManager {
    * Get webhook URL for this app
    */
   getWebhookUrl(): string {
-    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:5051';
+    const baseUrl = process.env.APP_BASE_URL || 'http://localhost:5052';
     return `${baseUrl}/gitlab/webhook`;
   }
 

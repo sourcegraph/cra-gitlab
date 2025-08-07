@@ -14,6 +14,7 @@ import { MRDetails } from './gitlab/types.js';
 import { gitlab, setReviewQueue } from './routes/gitlab.js';
 import { InstallationStore } from './services/installation-store.js';
 import { GitLabOAuthService } from './services/oauth.js';
+import { createMCPRoutes } from './mcp/http-server.js';
 
 const app = new Hono();
 
@@ -43,6 +44,9 @@ setReviewQueue(reviewQueue);
 // Mount GitLab routes (including OAuth and webhook)
 app.route('/gitlab', gitlab);
 
+// Mount MCP routes
+app.route('/mcp', createMCPRoutes());
+
 // Routes
 app.get('/', (c) => {
   return c.json({
@@ -53,7 +57,8 @@ app.get('/', (c) => {
       install: '/gitlab/install',
       webhook: '/gitlab/webhook',
       health: '/health',
-      queue_status: '/queue/status'
+      queue_status: '/queue/status',
+      mcp: '/mcp'
     }
   });
 });
