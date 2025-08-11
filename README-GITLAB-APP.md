@@ -18,24 +18,24 @@ This guide shows how to set up the GitLab Code Review Agent as a GitLab OAuth ap
 
 ```bash
 # Server Configuration
-APP_BASE_URL=https://your-domain.com
+APP_BASE_URL=https://your-id.ngrok-free.app
 SERVER_PORT=5052
-SERVER_DEBUG=false
+SERVER_DEBUG=true
 
 # GitLab OAuth Configuration
 GITLAB_BASE_URL=https://gitlab.com
-GITLAB_CLIENT_ID=your_gitlab_app_application_id
-GITLAB_CLIENT_SECRET=your_gitlab_app_secret
-GITLAB_REDIRECT_URI=https://your-domain.com/gitlab/callback
+GITLAB_CLIENT_ID=your_gitlab_app_client_id
+GITLAB_CLIENT_SECRET=your_gitlab_app_client_secret
+GITLAB_REDIRECT_URI=https://your-id.ngrok-free.app/gitlab/callback
 
 # Amp & MCP Configuration
 AMP_SERVER_URL=https://ampcode.com
 AMP_TIMEOUT=300
-MCP_AUTH_TOKEN=your_secure_mcp_auth_token
-CRA_PUBLIC_URL=https://your-domain.com
+MCP_AUTH_TOKEN=your_mcp_secret
+CRA_PUBLIC_URL=https://your-id.ngrok-free.app
 
 # Optional: Personal Access Token (for webhook-only mode)
-GITLAB_TOKEN=your_personal_access_token
+GITLAB_TOKEN=your_gitlab_pat
 ```
 
 ### Deploy Options

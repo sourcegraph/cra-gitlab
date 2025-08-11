@@ -65,7 +65,7 @@ Authorization: Bearer <your-token>
 
 **Usage with mcp-remote:**
 ```bash
-npx mcp-remote http://localhost:5050/mcp --header "Authorization: Bearer your-token"
+npx mcp-remote http://localhost:5052/mcp --header "Authorization: Bearer your-token"
 ```
 
 ### Standalone STDIO Server
@@ -103,7 +103,7 @@ Add to your Cursor settings:
       "args": [
         "-y",
         "mcp-remote", 
-        "http://localhost:5050/mcp",
+        "http://localhost:5052/mcp",
         "--header",
         "Authorization: Bearer your-mcp-token"
       ]
